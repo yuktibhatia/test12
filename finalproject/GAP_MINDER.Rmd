@@ -1,0 +1,197 @@
+---
+title: "Gapminder"
+author: "Yukti Bhatia"
+date: "6/12/2019"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+```{r, results='hide'}
+library(readxl)
+gapminder_final <- read.csv("E:\\Harrisburg University\\ANLY 506\\EDA Project\\gapminder.csv")
+View(gapminder_final)
+```
+
+
+```{r setup, include=FALSE}
+View(gapminder_final) 
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(matrixStats)
+library(gridExtra)
+library(RColorBrewer)
+```
+
+Data Summary
+
+```{r, echo=FALSE}
+str(gapminder_final)
+```
+
+Summary
+```{r, echo=FALSE}
+summary(gapminder_final)
+```
+
+Narrative Summary
+
+Number of Observation
+```{r, echo=FALSE}
+nrow(gapminder_final)
+```
+
+Type of variables - country
+```{r, echo=FALSE}
+class(gapminder_final$Country)
+```
+
+Type of variables - year
+```{r,echo=FALSE}
+class(gapminder_final$Year)
+```
+
+Type of variables - life
+```{r, echo=FALSE}
+class(gapminder_final$life)
+```
+
+Type of variables - population
+```{r, echo=FALSE}
+class(gapminder_final$population)
+```
+
+Type of variables - income
+```{r, echo=FALSE}
+class(gapminder_final$income)
+```
+
+Type of variables - region
+```{r, echo=FALSE}
+class(gapminder_final$region)
+```
+
+Data wrangling
+
+```{r, results='hide'}
+replace(gapminder_final$income,NA,0)
+df1 = aggregate(gapminder_final$income,list(gapminder_final$Country),mean)
+```
+
+
+No normalization or log scale reduction is needed to answer the above questions
+
+
+Population
+```{r, echo=FALSE}
+newdata <- filter(gapminder_final,gapminder_final$population>1)
+print(newdata)
+```
+
+Cleaning of Population 
+
+```{r, echo=FALSE}
+gapminder_final$population <- as.numeric(gsub(",","",gapminder_final$population))
+gapminder_final <- gapminder_final %>% filter(!is.na(gapminder_final$population))
+
+```
+
+Questions:
+
+1) Distribution of Life Expectancy
+We can see from the Histogram above that most of the countries have life expectancy in the range of 20-80 which is 
+```{r, echo=FALSE}
+hist(gapminder_final$life,breaks=100,main="Distribution of Life Expectancy")
+```
+
+2) What is the average income?
+
+```{r, echo=FALSE}
+mean(gapminder_final$income,trim = 0, na.rm = TRUE)
+```
+
+3) How many unique countries are there in the dataset?
+```{r, echo=FALSE}
+length(unique(gapminder_final$Country))
+```
+
+4) Summary of income
+
+```{r, echo=FALSE}
+summary(unique(gapminder_final$income))
+```
+
+
+5) Income Analysis in Histogram 
+
+```{r, echo=FALSE}
+d <- ggplot(gapminder_final, aes(x = population, y = income))
+d + geom_point()+geom_smooth(method = "lm") + scale_x_continuous(labels = scales::comma) 
+```
+The frequency of income is in the range below 50000. Further, when we look at the ranges summary, we find that the mean and the median lies in the 2nd quadrant with minimum value of 142 and maximum of 182668
+However, things change drastically, when we look at the weighted median and weighted mean based on the region. the Median reduces from 6651 to 1457, while the Mean reduces from 12397 to **4631.
+We can say that the income* ranges are different in different regions. 
+From the plot above (population vs income), we can also find that as the population increases, the income hardly increases for most, while is linear for some. However, if the population is lower always, the income increases exponentially.
+
+6) Life Expectancy Analysis
+
+```{r, echo=FALSE}
+e <- ggplot(gapminder_final, aes(x = life, y = income))
+e + geom_point()+geom_smooth(method = "lm") + scale_x_continuous(labels = scales::comma) 
+```
+
+There seems to be a high frequency of life expectancy in the range of 25-35 years
+
+7) Country Analysis
+
+Analysis for India & Canada
+```{r, echo=FALSE}
+# subset for India 
+population_india <- gapminder_final %>% filter(Country=='India')
+# subset for Canada
+population_canada <- gapminder_final %>% filter(Country=='Canada')
+# subset for United States
+population_united_states <- gapminder_final %>% filter(Country=='United States')
+
+ggplot(data= population_india, mapping = aes(y=Year, x=population, color="India"))  + geom_point(data = gapminder_final, aes(color="Others")) + geom_jitter()
+
+ggplot(data= population_canada, mapping = aes(y=Year, x=population, color="Canada")) + geom_point(data = gapminder_final, aes(color="Others")) + geom_jitter()
+
+ggplot(data= population_united_states, mapping = aes(y=Year, x=population, color="USA")) + geom_point(data = gapminder_final, aes(color="Others")) + geom_jitter()
+
+```
+The population in India, Canada and USA has risen exponentially after 1950 as compared to other countries.
+India has higher in population than other countries. There is a exponential growth in  countries after 1950. 
+
+ 
+8) Density Plot - for Life Expectancy 
+
+```{r, echo=FALSE}
+
+gapminder_final %>%
+ ggplot(aes(x = life, fill = region)) + facet_wrap(~Year) + # aes = aesthetics
+ geom_density(alpha = 0.9) + 
+ ggtitle('Density plots of life Expectancy continent') +
+ theme(legend.title = element_text(color = 'Grey',size = 14, face = 'bold'),
+ legend.background = element_rect(fill = 'gray90', size = 0.5, linetype = 'dashed')) +
+ labs(x='Life Expectancy', y='Density')
+```
+
+9) Plotting data for year 2015
+
+
+```{r, echo=FALSE}
+gapminder_final_2015 <- gapminder_final %>% 
+  filter(Year==2015)
+
+ggplot(gapminder_final_2015, aes(x = income, y = region)) + facet_wrap(~Year) +
+ geom_boxplot(outlier.colour = 'green') +
+ ggtitle('Income for Regions in 2015 across countries') +
+ geom_jitter(position = position_jitter(width = 0.09, height = 0), alpha = 1/10) + scale_x_continuous(labels = scales::comma)
+ 
+```
+For South Asia, Sub-Saharan Africa, and America is lower than 50000, while other regions go above this range and thus affecting the weighted mean and median.
+
+Life Expectancy - 
+I found that life expectancy in the given dataset is higher in the range of 25-35 years. The mean of Life Expectancy in 2015 for Sub-Saharan Africa region is lower than all other regions, while Europe & Central Asia is highest. There is a relationship between Life Exepectancy and income. As the life expectancy grows above 60, the income levels rises higher. 
